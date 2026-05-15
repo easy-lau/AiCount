@@ -98,6 +98,29 @@ pub fn parse_session(path: &Path) -> Option<SessionStat> {
             Some(p) => p,
             None => continue,
         };
+
+        // Newer codex CLI (v0.64+) emits apply_patch as a custom_tool_call with
+        // the patch body in `input` directly (no shell heredoc wrapper).
+        if payload.get("type").and_then(Value::as_str) == Some("custom_tool_call")
+            && payload.get("name").and_then(Value::as_str) == Some("apply_patch")
+        {
+            let patch_body = payload
+                .get("input")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            let (added, removed, file_path) = parse_apply_patch(patch_body);
+            if added == 0 && removed == 0 {
+                continue;
+            }
+            events.push(EditEvent {
+                file_path,
+                timestamp_ms: ts,
+                added,
+                removed,
+            });
+            continue;
+        }
+
         if payload.get("type").and_then(Value::as_str) != Some("function_call") {
             continue;
         }
@@ -240,6 +263,41 @@ mod tests {
         assert_eq!(stat.cwd.as_deref(), Some("/tmp/proj"));
         assert_eq!(stat.events.len(), 1);
         assert_eq!(stat.events[0].file_path.as_deref(), Some("src/foo.rs"));
+    }
+
+    #[test]
+    fn codex_apply_patch_handles_custom_tool_call_schema_v064() {
+        // codex CLI v0.64+ emits apply_patch as a custom_tool_call with the
+        // patch body directly in `input` (no shell heredoc wrapper).
+        let temp = tempdir().expect("tempdir");
+        let path = temp.path().join("session.jsonl");
+
+        let patch_body = "*** Begin Patch\n*** Add File: README.md\n+ hello\n+ world\n- bye\n*** End Patch\n";
+        let line1 = serde_json::json!({
+            "timestamp": "2026-05-14T10:00:00Z",
+            "type": "session_meta",
+            "payload": {"id": "abc", "cwd": "/tmp/proj"}
+        });
+        let line2 = serde_json::json!({
+            "timestamp": "2026-05-14T10:01:00Z",
+            "type": "response_item",
+            "payload": {
+                "type": "custom_tool_call",
+                "status": "completed",
+                "call_id": "c1",
+                "name": "apply_patch",
+                "input": patch_body
+            }
+        });
+        let content = format!("{}\n{}\n", line1, line2);
+        std::fs::write(&path, content).expect("write fixture");
+
+        let stat = parse_session(&path).expect("parse");
+        let total = stat.total();
+        assert_eq!(total.added, 2);
+        assert_eq!(total.removed, 1);
+        assert_eq!(stat.events.len(), 1);
+        assert_eq!(stat.events[0].file_path.as_deref(), Some("README.md"));
     }
 
     #[test]
