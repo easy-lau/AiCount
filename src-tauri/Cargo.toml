@@ -1,6 +1,6 @@
 [package]
 name = "aicount"
-version = "0.1.0"
+version = "0.1.1"
 description = "AICount — AI code generation stats"
 authors = ["liuxing"]
 license = "MIT"
