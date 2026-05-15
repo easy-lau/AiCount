@@ -61,6 +61,24 @@ jobs:
           releaseName: "AICount ${{ github.ref_name }}"
           releaseBody: |
             See the assets below to download and install AICount.
+
+            **Windows users**: download the `*-portable.exe` for a no-install single-file build, or the `.msi` / `setup.exe` for a standard installer.
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Upload portable Windows .exe
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          $src = "src-tauri\target\release\aicount.exe"
+          if (-not (Test-Path $src)) {
+            Write-Error "Portable binary not found at $src"
+            exit 1
+          }
+          $dst = "AICount_${version}_x64-portable.exe"
+          Copy-Item $src $dst
+          gh release upload "${{ github.ref_name }}" $dst --clobber
