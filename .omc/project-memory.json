@@ -1,0 +1,308 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1778749952827,
+  "projectRoot": "/Users/liuxing/Desktop/cccode",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "18.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "18.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "vite",
+        "version": "5.4.0",
+        "category": "build"
+      }
+    ],
+    "packageManager": "pnpm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "pnpm tsc --noEmit 2>&1 | tail -60; echo \"EXIT=$?\"",
+    "testCommand": ". ~/.cargo/env && cd /Users/liuxing/Desktop/cccode/src-tauri && cargo test --lib 2>&1 | tail -40",
+    "lintCommand": null,
+    "devCommand": "pnpm dev",
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc --noEmit && vite build",
+      "typecheck": "tsc --noEmit",
+      "tauri": "tauri",
+      "preview": "vite preview"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "src"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 5,
+      "lastAccessed": 1778749952814,
+      "keyFiles": [
+        "App.tsx",
+        "index.css",
+        "main.tsx",
+        "vite-env.d.ts"
+      ]
+    },
+    "src-tauri": {
+      "path": "src-tauri",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1778749952816,
+      "keyFiles": [
+        "Cargo.lock",
+        "Cargo.toml",
+        "build.rs",
+        "tauri.conf.json"
+      ]
+    },
+    "src/components": {
+      "path": "src/components",
+      "purpose": "UI components",
+      "fileCount": 1,
+      "lastAccessed": 1778749952817,
+      "keyFiles": []
+    },
+    "src/lib": {
+      "path": "src/lib",
+      "purpose": "Library code",
+      "fileCount": 1,
+      "lastAccessed": 1778749952817,
+      "keyFiles": [
+        "utils.ts"
+      ]
+    },
+    "src-tauri/src": {
+      "path": "src-tauri/src",
+      "purpose": "Source code",
+      "fileCount": 4,
+      "lastAccessed": 1778749952818,
+      "keyFiles": [
+        "lib.rs",
+        "main.rs",
+        "paths.rs"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src-tauri/src/code_stats/mod.rs",
+      "accessCount": 27,
+      "lastAccessed": 1778756124614,
+      "type": "file"
+    },
+    {
+      "path": "src/components/overview/OverviewPage.tsx",
+      "accessCount": 11,
+      "lastAccessed": 1778756105675,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/code_stats/claude.rs",
+      "accessCount": 7,
+      "lastAccessed": 1778753028663,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/code_stats/codex.rs",
+      "accessCount": 7,
+      "lastAccessed": 1778753041926,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "accessCount": 7,
+      "lastAccessed": 1778753066601,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/commands/mod.rs",
+      "accessCount": 6,
+      "lastAccessed": 1778753063148,
+      "type": "file"
+    },
+    {
+      "path": "src/types.ts",
+      "accessCount": 6,
+      "lastAccessed": 1778756044747,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/commands/code_stats.rs",
+      "accessCount": 5,
+      "lastAccessed": 1778753055250,
+      "type": "file"
+    },
+    {
+      "path": "src/App.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1778753591557,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/Cargo.toml",
+      "accessCount": 3,
+      "lastAccessed": 1778752873372,
+      "type": "file"
+    },
+    {
+      "path": "src/components/stats/StatsPage.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1778753501975,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 2,
+      "lastAccessed": 1778752840907,
+      "type": "file"
+    },
+    {
+      "path": "src/lib/utils.ts",
+      "accessCount": 2,
+      "lastAccessed": 1778753503831,
+      "type": "file"
+    },
+    {
+      "path": "src/components/stats/utils.ts",
+      "accessCount": 2,
+      "lastAccessed": 1778753525426,
+      "type": "file"
+    },
+    {
+      "path": "src/components/ui/card.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1778753525763,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/commands/session_manager.rs",
+      "accessCount": 1,
+      "lastAccessed": 1778749982456,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/paths.rs",
+      "accessCount": 1,
+      "lastAccessed": 1778749982902,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/session_manager/mod.rs",
+      "accessCount": 1,
+      "lastAccessed": 1778749989205,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/session_manager/providers/claude.rs",
+      "accessCount": 1,
+      "lastAccessed": 1778749994789,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/session_manager/providers/codex.rs",
+      "accessCount": 1,
+      "lastAccessed": 1778749995681,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/session_manager/providers/mod.rs",
+      "accessCount": 1,
+      "lastAccessed": 1778749996047,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/session_manager/providers/utils.rs",
+      "accessCount": 1,
+      "lastAccessed": 1778749996502,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.json",
+      "accessCount": 1,
+      "lastAccessed": 1778750012050,
+      "type": "file"
+    },
+    {
+      "path": "src/components/sessions/SessionManagerPage.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778750017047,
+      "type": "file"
+    },
+    {
+      "path": "src/components/sessions/types.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778750017100,
+      "type": "file"
+    },
+    {
+      "path": "src/components/ui/button.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778750024174,
+      "type": "file"
+    },
+    {
+      "path": "src/components/stats/StatBar.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778750039009,
+      "type": "file"
+    },
+    {
+      "path": "src/components/sidebar/AppSidebar.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778753521850,
+      "type": "file"
+    },
+    {
+      "path": "src/components/settings/SettingsPage.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778753524990,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/code_stats/project_loc.rs",
+      "accessCount": 1,
+      "lastAccessed": 1778755966106,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

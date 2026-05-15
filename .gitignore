@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+dist/
+*.log
+.eslintcache
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/schemas/
+src-tauri/gen/android/
+src-tauri/gen/ios/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OMC working files
+.omc/state/
+.omc/logs/
