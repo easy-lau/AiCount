@@ -1,6 +1,6 @@
 [package]
 name = "aicount"
-version = "0.1.2"
+version = "0.2.0"
 description = "AICount — AI code generation stats"
 authors = ["liuxing"]
 license = "MIT"
@@ -29,6 +29,9 @@ anyhow = "1.0"
 once_cell = "1.21"
 tempfile = "3"
 url = "2.5"
+notify = { version = "6", default-features = false, features = ["macos_fsevent"] }
+notify-debouncer-mini = "0.4"
+csv = "1.3"
 
 [dev-dependencies]
 tempfile = "3"

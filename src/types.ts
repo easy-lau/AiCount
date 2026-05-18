@@ -38,6 +38,25 @@ export interface ModelBreakdown {
   percent: number;
 }
 
+export interface LanguageBreakdown {
+  language: string;
+  extension: string;
+  loc: number;
+  fileCount: number;
+  percent: number;
+}
+
+export interface HeatmapCell {
+  date: string;
+  loc: number;
+}
+
+export interface HeatmapData {
+  fromMs: number;
+  toMs: number;
+  cells: HeatmapCell[];
+}
+
 export interface Overview {
   totalLoc: number;
   totalFiles: number;
@@ -45,6 +64,7 @@ export interface Overview {
   filesDeltaPercent: number | null;
   daily: DailyBucket[];
   byModel: ModelBreakdown[];
+  byLanguage: LanguageBreakdown[];
   sessionCount: number;
   rangeFromMs: number;
   rangeToMs: number;

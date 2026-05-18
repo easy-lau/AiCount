@@ -21,3 +21,5 @@ src-tauri/gen/ios/
 # OMC working files
 .omc/state/
 .omc/logs/
+.omc/sessions/
+.omc/project-memory.json

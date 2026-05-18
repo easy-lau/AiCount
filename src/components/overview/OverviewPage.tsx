@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 import {
   Area,
   CartesianGrid,
@@ -25,8 +27,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type {
+  HeatmapData,
   ModelBreakdown,
   Overview,
+  OverviewQuery,
   ProjectInfo,
   UsageRangeSelection,
 } from "@/types";
@@ -40,6 +44,10 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { StatsPage } from "@/components/stats/StatsPage";
 import { UsageDateRangePicker } from "@/components/overview/UsageDateRangePicker";
+import { LanguageBreakdownCard } from "@/components/overview/LanguageBreakdownCard";
+import { ActivityHeatmap } from "@/components/overview/ActivityHeatmap";
+import { ExportButton } from "@/components/overview/ExportButton";
+import { ChartTooltip } from "@/components/overview/ChartTooltip";
 import { formatRangeTrigger, resolveUsageRange } from "@/lib/usageRange";
 import { cn } from "@/lib/utils";
 
@@ -88,7 +96,7 @@ function aggregateWeekly(
 
 export function OverviewPage() {
   const [selection, setSelection] = useState<UsageRangeSelection>({
-    preset: "30d",
+    preset: "today",
   });
   const { fromMs, toMs } = useMemo(() => {
     const r = resolveUsageRange(selection);
@@ -100,6 +108,7 @@ export function OverviewPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [granularity, setGranularity] = useState<"day" | "week">("day");
+  const [heatmapData, setHeatmapData] = useState<HeatmapData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,8 +124,7 @@ export function OverviewPage() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadOverview = useCallback(() => {
     setIsLoading(true);
     setError(null);
     const query: { project?: string; fromMs: number; toMs: number } = {
@@ -126,18 +134,53 @@ export function OverviewPage() {
     if (selectedProject !== ALL_PROJECTS) query.project = selectedProject;
     invoke<Overview>("compute_overview", { query })
       .then((result) => {
-        if (!cancelled) setOverview(result);
+        setOverview(result);
       })
       .catch((err) => {
-        if (!cancelled) setError(extractErrorMessage(err));
+        setError(extractErrorMessage(err));
       })
       .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        setIsLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, [selectedProject, fromMs, toMs]);
+
+  useEffect(() => {
+    loadOverview();
+  }, [loadOverview]);
+
+  const loadHeatmap = useCallback(() => {
+    const project =
+      selectedProject !== ALL_PROJECTS ? selectedProject : undefined;
+    invoke<HeatmapData>("compute_heatmap", { project })
+      .then((result) => {
+        setHeatmapData(result);
+      })
+      .catch(() => {
+        // ignore heatmap errors silently
+      });
+  }, [selectedProject]);
+
+  useEffect(() => {
+    loadHeatmap();
+  }, [loadHeatmap]);
+
+  useEffect(() => {
+    let unlisten: UnlistenFn | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    listen("session-changed", () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        loadOverview();
+        loadHeatmap();
+      }, 200);
+    }).then((fn) => {
+      unlisten = fn;
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unlisten?.();
+    };
+  }, [loadOverview, loadHeatmap]);
 
   const trendData = useMemo(() => {
     if (!overview) return [];
@@ -159,6 +202,12 @@ export function OverviewPage() {
       color: MODEL_COLORS[i % MODEL_COLORS.length],
     }));
   }, [overview]);
+
+  const overviewQuery: OverviewQuery = useMemo(() => {
+    const q: OverviewQuery = { fromMs, toMs };
+    if (selectedProject !== ALL_PROJECTS) q.project = selectedProject;
+    return q;
+  }, [selectedProject, fromMs, toMs]);
 
   return (
     <ScrollArea className="h-full">
@@ -182,6 +231,7 @@ export function OverviewPage() {
               selected={selectedProject}
               onSelect={setSelectedProject}
             />
+            <ExportButton query={overviewQuery} />
           </div>
         </header>
 
@@ -218,6 +268,8 @@ export function OverviewPage() {
             iconBg="bg-emerald-50 dark:bg-emerald-950/40"
           />
         </div>
+
+        {heatmapData && <ActivityHeatmap data={heatmapData} />}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -292,7 +344,7 @@ export function OverviewPage() {
                     tickLine={false}
                     axisLine={false}
                   />
-                  <Tooltip />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(148, 163, 184, 0.08)" }} />
                   <Area
                     yAxisId="left"
                     type="monotone"
@@ -340,7 +392,7 @@ export function OverviewPage() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(148, 163, 184, 0.08)" }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -357,6 +409,8 @@ export function OverviewPage() {
             </div>
           </CardContent>
         </Card>
+
+        <LanguageBreakdownCard data={overview?.byLanguage ?? []} />
 
         <StatsPage externalProject={selectedProject} />
       </div>

@@ -90,6 +90,31 @@ pub struct ModelBreakdown {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LanguageBreakdown {
+    pub language: String,
+    pub extension: String,
+    pub loc: u64,
+    pub file_count: u32,
+    pub percent: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HeatmapCell {
+    pub date: String,
+    pub loc: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HeatmapData {
+    pub from_ms: i64,
+    pub to_ms: i64,
+    pub cells: Vec<HeatmapCell>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Overview {
     pub total_loc: u64,
     pub total_files: u64,
@@ -97,6 +122,7 @@ pub struct Overview {
     pub files_delta_percent: Option<f64>,
     pub daily: Vec<DailyBucket>,
     pub by_model: Vec<ModelBreakdown>,
+    pub by_language: Vec<LanguageBreakdown>,
     pub session_count: u64,
     pub range_from_ms: i64,
     pub range_to_ms: i64,
@@ -138,6 +164,50 @@ where
         cache.insert(path.to_path_buf(), (mtime, stat.clone()));
     }
     Some(stat)
+}
+
+pub fn invalidate_cache_for(path: &Path) {
+    if let Ok(mut cache) = CACHE.lock() {
+        cache.remove(path);
+    }
+}
+
+pub fn ext_to_language(ext: &str) -> &'static str {
+    match ext.to_lowercase().as_str() {
+        "rs" => "Rust",
+        "ts" | "tsx" => "TypeScript",
+        "js" | "jsx" | "mjs" | "cjs" => "JavaScript",
+        "py" => "Python",
+        "go" => "Go",
+        "java" => "Java",
+        "kt" | "kts" => "Kotlin",
+        "scala" => "Scala",
+        "c" | "cc" | "cpp" | "cxx" | "h" | "hh" | "hpp" | "hxx" => "C/C++",
+        "cs" => "C#",
+        "rb" => "Ruby",
+        "php" => "PHP",
+        "swift" => "Swift",
+        "m" | "mm" => "Objective-C",
+        "sh" | "bash" | "zsh" | "fish" => "Shell",
+        "lua" => "Lua",
+        "pl" => "Perl",
+        "r" => "R",
+        "ex" | "exs" => "Elixir",
+        "dart" => "Dart",
+        "vue" => "Vue",
+        "svelte" => "Svelte",
+        "html" | "htm" => "HTML",
+        "css" | "scss" | "sass" | "less" => "CSS",
+        "json" | "jsonc" => "JSON",
+        "yaml" | "yml" => "YAML",
+        "toml" => "TOML",
+        "xml" => "XML",
+        "md" | "mdx" => "Markdown",
+        "sql" => "SQL",
+        "gradle" | "groovy" => "Groovy",
+        "tf" => "Terraform",
+        _ => "Other",
+    }
 }
 
 pub(crate) fn parse_ts(value: &Value) -> Option<i64> {
@@ -207,6 +277,10 @@ fn compute_overview_from(
     let mut model_loc: HashMap<String, u64> = HashMap::new();
     let mut model_files: HashMap<String, HashSet<String>> = HashMap::new();
 
+    let mut lang_loc: HashMap<String, u64> = HashMap::new();
+    let mut lang_files: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut lang_ext: HashMap<String, String> = HashMap::new();
+
     let mut session_count: u64 = 0;
     for session in filtered {
         // Sessions with no known model are still counted in totals but excluded
@@ -241,6 +315,20 @@ fn compute_overview_from(
                             .insert(fp.clone());
                     }
                 }
+                if let Some(fp) = &event.file_path {
+                    let ext = Path::new(fp)
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .map(|s| s.to_lowercase())
+                        .unwrap_or_default();
+                    let language = ext_to_language(&ext).to_string();
+                    *lang_loc.entry(language.clone()).or_default() += delta;
+                    lang_files
+                        .entry(language.clone())
+                        .or_default()
+                        .insert(fp.clone());
+                    lang_ext.entry(language).or_insert(ext);
+                }
                 session_in_current = true;
             } else if ts >= prev_from_ms && ts < from_ms && ts <= prev_to_ms {
                 previous_loc += delta;
@@ -257,6 +345,7 @@ fn compute_overview_from(
     let daily = build_daily_series(from_ms, to_ms, &bucket_loc, &bucket_files);
 
     let by_model = build_model_breakdown(&model_loc, &model_files, current_loc);
+    let by_language = build_language_breakdown(&lang_loc, &lang_files, &lang_ext, current_loc);
 
     let loc_delta_percent = if previous_loc == 0 {
         None
@@ -304,12 +393,76 @@ fn compute_overview_from(
         files_delta_percent,
         daily,
         by_model,
+        by_language,
         session_count,
         range_from_ms: from_ms,
         range_to_ms: to_ms,
         total_project_loc,
         ai_ratio_percent,
         ai_ratio_delta_percent,
+    }
+}
+
+pub fn compute_heatmap(project: Option<&str>, from_ms: i64, to_ms: i64) -> HeatmapData {
+    let all = scan_all_sessions();
+    let filtered: Vec<&SessionStat> = match project {
+        Some(p) => all
+            .iter()
+            .filter(|s| s.cwd.as_deref() == Some(p))
+            .collect(),
+        None => all.iter().collect(),
+    };
+
+    let mut bucket_loc: HashMap<String, u64> = HashMap::new();
+    for session in &filtered {
+        for event in &session.events {
+            let ts = match event.timestamp_ms.or(session.last_active_at) {
+                Some(v) => v,
+                None => continue,
+            };
+            if ts < from_ms || ts > to_ms {
+                continue;
+            }
+            let delta = event.added + event.removed;
+            let date = local_date_key(ts);
+            *bucket_loc.entry(date).or_default() += delta;
+        }
+    }
+
+    let start_dt = match Local.timestamp_millis_opt(from_ms).single() {
+        Some(v) => v.date_naive(),
+        None => {
+            return HeatmapData {
+                from_ms,
+                to_ms,
+                cells: Vec::new(),
+            }
+        }
+    };
+    let end_dt = match Local.timestamp_millis_opt(to_ms).single() {
+        Some(v) => v.date_naive(),
+        None => {
+            return HeatmapData {
+                from_ms,
+                to_ms,
+                cells: Vec::new(),
+            }
+        }
+    };
+
+    let mut cells = Vec::new();
+    let mut cursor = start_dt;
+    while cursor <= end_dt {
+        let key = cursor.format("%Y-%m-%d").to_string();
+        let loc = bucket_loc.get(&key).copied().unwrap_or(0);
+        cells.push(HeatmapCell { date: key, loc });
+        cursor += ChronoDuration::days(1);
+    }
+
+    HeatmapData {
+        from_ms,
+        to_ms,
+        cells,
     }
 }
 
@@ -349,6 +502,41 @@ fn build_daily_series(
     out
 }
 
+fn build_language_breakdown(
+    lang_loc: &HashMap<String, u64>,
+    lang_files: &HashMap<String, HashSet<String>>,
+    lang_ext: &HashMap<String, String>,
+    total_loc: u64,
+) -> Vec<LanguageBreakdown> {
+    if total_loc == 0 {
+        return Vec::new();
+    }
+    let mut entries: Vec<(String, String, u64, u32)> = lang_loc
+        .iter()
+        .map(|(language, loc)| {
+            let file_count = lang_files
+                .get(language)
+                .map(|s| s.len() as u32)
+                .unwrap_or(0);
+            let extension = lang_ext.get(language).cloned().unwrap_or_default();
+            (language.clone(), extension, *loc, file_count)
+        })
+        .collect();
+    entries.sort_by_key(|e| std::cmp::Reverse(e.2));
+
+    let total_loc_f = total_loc as f64;
+    entries
+        .into_iter()
+        .map(|(language, extension, loc, file_count)| LanguageBreakdown {
+            language,
+            extension,
+            loc,
+            file_count,
+            percent: loc as f64 / total_loc_f * 100.0,
+        })
+        .collect()
+}
+
 fn build_model_breakdown(
     model_loc: &HashMap<String, u64>,
     model_files: &HashMap<String, HashSet<String>>,
@@ -367,7 +555,7 @@ fn build_model_breakdown(
             (model.clone(), *loc, file_count)
         })
         .collect();
-    entries.sort_by(|a, b| b.1.cmp(&a.1));
+    entries.sort_by_key(|e| std::cmp::Reverse(e.1));
 
     let total_loc_f = total_loc as f64;
     let result: Vec<ModelBreakdown> = entries
