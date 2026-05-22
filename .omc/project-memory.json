@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1778749952827,
+  "lastScanned": 1779374973847,
   "projectRoot": "/Users/liuxing/Desktop/cccode",
   "techStack": {
     "languages": [
@@ -42,8 +42,8 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "pnpm tsc --noEmit 2>&1 | tail -60; echo \"EXIT=$?\"",
-    "testCommand": ". ~/.cargo/env && cd /Users/liuxing/Desktop/cccode/src-tauri && cargo test --lib 2>&1 | tail -40",
+    "buildCommand": "cd /Users/liuxing/Desktop/cccode/src-tauri && ~/.cargo/bin/cargo build 2>&1 | tail -20",
+    "testCommand": null,
     "lintCommand": null,
     "devCommand": "pnpm dev",
     "scripts": {
@@ -64,21 +64,42 @@
     "isMonorepo": false,
     "workspaces": [],
     "mainDirectories": [
+      "scripts",
       "src"
     ],
     "gitBranches": null
   },
   "customNotes": [],
   "directoryMap": {
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 1,
+      "lastAccessed": 1779374973836,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 2,
+      "lastAccessed": 1779374973838,
+      "keyFiles": [
+        "app-icon.png",
+        "app-icon.svg"
+      ]
+    },
     "src": {
       "path": "src",
       "purpose": "Source code",
-      "fileCount": 5,
-      "lastAccessed": 1778749952814,
+      "fileCount": 6,
+      "lastAccessed": 1779374973838,
       "keyFiles": [
         "App.tsx",
         "index.css",
         "main.tsx",
+        "types.ts",
         "vite-env.d.ts"
       ]
     },
@@ -86,7 +107,7 @@
       "path": "src-tauri",
       "purpose": null,
       "fileCount": 6,
-      "lastAccessed": 1778749952816,
+      "lastAccessed": 1779374973838,
       "keyFiles": [
         "Cargo.lock",
         "Cargo.toml",
@@ -94,27 +115,41 @@
         "tauri.conf.json"
       ]
     },
+    "dist/assets": {
+      "path": "dist/assets",
+      "purpose": "Static assets",
+      "fileCount": 2,
+      "lastAccessed": 1779374973839,
+      "keyFiles": [
+        "index-BK77dCGW.css",
+        "index-ClE15UiJ.js"
+      ]
+    },
     "src/components": {
       "path": "src/components",
       "purpose": "UI components",
-      "fileCount": 1,
-      "lastAccessed": 1778749952817,
-      "keyFiles": []
+      "fileCount": 2,
+      "lastAccessed": 1779374973839,
+      "keyFiles": [
+        "theme-provider.tsx"
+      ]
     },
     "src/lib": {
       "path": "src/lib",
       "purpose": "Library code",
-      "fileCount": 1,
-      "lastAccessed": 1778749952817,
+      "fileCount": 4,
+      "lastAccessed": 1779374973839,
       "keyFiles": [
-        "utils.ts"
+        "constants.ts",
+        "path.ts",
+        "usageRange.ts"
       ]
     },
     "src-tauri/src": {
       "path": "src-tauri/src",
       "purpose": "Source code",
-      "fileCount": 4,
-      "lastAccessed": 1778749952818,
+      "fileCount": 7,
+      "lastAccessed": 1779374973839,
       "keyFiles": [
         "lib.rs",
         "main.rs",
@@ -125,74 +160,152 @@
   "hotPaths": [
     {
       "path": "src-tauri/src/code_stats/mod.rs",
-      "accessCount": 27,
-      "lastAccessed": 1778756124614,
+      "accessCount": 54,
+      "lastAccessed": 1779430111561,
       "type": "file"
     },
     {
       "path": "src/components/overview/OverviewPage.tsx",
-      "accessCount": 11,
-      "lastAccessed": 1778756105675,
-      "type": "file"
-    },
-    {
-      "path": "src-tauri/src/code_stats/claude.rs",
-      "accessCount": 7,
-      "lastAccessed": 1778753028663,
-      "type": "file"
-    },
-    {
-      "path": "src-tauri/src/code_stats/codex.rs",
-      "accessCount": 7,
-      "lastAccessed": 1778753041926,
+      "accessCount": 35,
+      "lastAccessed": 1779167794781,
       "type": "file"
     },
     {
       "path": "src-tauri/src/lib.rs",
-      "accessCount": 7,
-      "lastAccessed": 1778753066601,
-      "type": "file"
-    },
-    {
-      "path": "src-tauri/src/commands/mod.rs",
-      "accessCount": 6,
-      "lastAccessed": 1778753063148,
+      "accessCount": 23,
+      "lastAccessed": 1779376870880,
       "type": "file"
     },
     {
       "path": "src/types.ts",
-      "accessCount": 6,
-      "lastAccessed": 1778756044747,
-      "type": "file"
-    },
-    {
-      "path": "src-tauri/src/commands/code_stats.rs",
-      "accessCount": 5,
-      "lastAccessed": 1778753055250,
+      "accessCount": 18,
+      "lastAccessed": 1779376879274,
       "type": "file"
     },
     {
       "path": "src/App.tsx",
-      "accessCount": 5,
-      "lastAccessed": 1778753591557,
+      "accessCount": 15,
+      "lastAccessed": 1779376889063,
+      "type": "file"
+    },
+    {
+      "path": "src/components/overview/ActivityHeatmap.tsx",
+      "accessCount": 14,
+      "lastAccessed": 1779169350929,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/code_stats/project_loc.rs",
+      "accessCount": 13,
+      "lastAccessed": 1779430112821,
+      "type": "file"
+    },
+    {
+      "path": "src/components/projects/ProjectsPage.tsx",
+      "accessCount": 11,
+      "lastAccessed": 1779170293624,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/commands/code_stats.rs",
+      "accessCount": 10,
+      "lastAccessed": 1779096093956,
+      "type": "file"
+    },
+    {
+      "path": "src/components/overview/LanguageBreakdownCard.tsx",
+      "accessCount": 10,
+      "lastAccessed": 1779097555576,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/code_stats/claude.rs",
+      "accessCount": 9,
+      "lastAccessed": 1779095314918,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/code_stats/codex.rs",
+      "accessCount": 9,
+      "lastAccessed": 1779095320305,
       "type": "file"
     },
     {
       "path": "src-tauri/Cargo.toml",
-      "accessCount": 3,
-      "lastAccessed": 1778752873372,
+      "accessCount": 9,
+      "lastAccessed": 1779167660993,
       "type": "file"
     },
     {
-      "path": "src/components/stats/StatsPage.tsx",
-      "accessCount": 3,
-      "lastAccessed": 1778753501975,
+      "path": "src-tauri/src/commands/mod.rs",
+      "accessCount": 9,
+      "lastAccessed": 1779376721093,
       "type": "file"
     },
     {
       "path": "package.json",
-      "accessCount": 2,
-      "lastAccessed": 1778752840907,
+      "accessCount": 8,
+      "lastAccessed": 1779375096751,
+      "type": "file"
+    },
+    {
+      "path": "src/components/settings/SettingsPage.tsx",
+      "accessCount": 8,
+      "lastAccessed": 1779375099569,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/tray.rs",
+      "accessCount": 7,
+      "lastAccessed": 1779376743042,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/paths.rs",
+      "accessCount": 7,
+      "lastAccessed": 1779376840829,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/commands/sessions.rs",
+      "accessCount": 6,
+      "lastAccessed": 1779170204174,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/tauri.conf.json",
+      "accessCount": 6,
+      "lastAccessed": 1779376725056,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/watcher.rs",
+      "accessCount": 5,
+      "lastAccessed": 1779096351902,
+      "type": "file"
+    },
+    {
+      "path": "src/components/stats/StatsPage.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1779165916758,
+      "type": "file"
+    },
+    {
+      "path": "src/components/projects/ProjectCard.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1779170238932,
+      "type": "file"
+    },
+    {
+      "path": "src/components/sidebar/AppSidebar.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1779376902114,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 4,
+      "lastAccessed": 1779375096296,
       "type": "file"
     },
     {
@@ -214,15 +327,39 @@
       "type": "file"
     },
     {
-      "path": "src-tauri/src/commands/session_manager.rs",
-      "accessCount": 1,
-      "lastAccessed": 1778749982456,
+      "path": "src-tauri/capabilities/default.json",
+      "accessCount": 2,
+      "lastAccessed": 1779095897861,
       "type": "file"
     },
     {
-      "path": "src-tauri/src/paths.rs",
+      "path": "src/components/overview/ExportButton.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1779096073264,
+      "type": "file"
+    },
+    {
+      "path": "src/components/overview/ChartTooltip.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1779097580173,
+      "type": "file"
+    },
+    {
+      "path": "src/components/ui/button.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1779167272441,
+      "type": "file"
+    },
+    {
+      "path": "src/components/sessions/SessionsPage.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1779167304557,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/src/commands/session_manager.rs",
       "accessCount": 1,
-      "lastAccessed": 1778749982902,
+      "lastAccessed": 1778749982456,
       "type": "file"
     },
     {
@@ -274,33 +411,51 @@
       "type": "file"
     },
     {
-      "path": "src/components/ui/button.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1778750024174,
-      "type": "file"
-    },
-    {
       "path": "src/components/stats/StatBar.tsx",
       "accessCount": 1,
       "lastAccessed": 1778750039009,
       "type": "file"
     },
     {
-      "path": "src/components/sidebar/AppSidebar.tsx",
+      "path": "src-tauri/src/main.rs",
       "accessCount": 1,
-      "lastAccessed": 1778753521850,
+      "lastAccessed": 1779094730796,
       "type": "file"
     },
     {
-      "path": "src/components/settings/SettingsPage.tsx",
+      "path": "src/components/overview/UsageDateRangePicker.tsx",
       "accessCount": 1,
-      "lastAccessed": 1778753524990,
+      "lastAccessed": 1779095314491,
       "type": "file"
     },
     {
-      "path": "src-tauri/src/code_stats/project_loc.rs",
+      "path": "src/components/ui/tooltip.tsx",
       "accessCount": 1,
-      "lastAccessed": 1778755966106,
+      "lastAccessed": 1779095928649,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/icons/icon.png",
+      "accessCount": 1,
+      "lastAccessed": 1779097845358,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/icons/_source.png",
+      "accessCount": 1,
+      "lastAccessed": 1779098089202,
+      "type": "file"
+    },
+    {
+      "path": "src-tauri/icons/128x128@2x.png",
+      "accessCount": 1,
+      "lastAccessed": 1779098100026,
+      "type": "file"
+    },
+    {
+      "path": "src/lib/constants.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779166626641,
       "type": "file"
     }
   ],

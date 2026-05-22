@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -50,14 +51,15 @@ pub fn count_loc(path: &Path) -> u64 {
             }
         }
     }
-    let loc = walk_and_count(path);
+    let skip_set: HashSet<String> = SKIP_DIRS.iter().map(|s| s.to_lowercase()).collect();
+    let loc = walk_and_count(path, &skip_set);
     if let Ok(mut cache) = CACHE.lock() {
         cache.insert(path.to_path_buf(), CacheEntry { root_mtime, loc });
     }
     loc
 }
 
-fn walk_and_count(root: &Path) -> u64 {
+fn walk_and_count(root: &Path, skip_set: &HashSet<String>) -> u64 {
     let mut total: u64 = 0;
     let mut stack: Vec<PathBuf> = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
@@ -79,7 +81,7 @@ fn walk_and_count(root: &Path) -> u64 {
                     Some(n) => n.to_lowercase(),
                     None => continue,
                 };
-                if SKIP_DIRS.iter().any(|s| *s == name) {
+                if skip_set.contains(&name) {
                     continue;
                 }
                 if name.starts_with('.') && !DOT_DIR_ALLOWLIST.iter().any(|s| *s == name) {

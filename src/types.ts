@@ -23,6 +23,7 @@ export interface ProjectInfo {
   path: string;
   sessionCount: number;
   lastActiveAt: number | null;
+  netLoc: number;
 }
 
 export interface DailyBucket {
@@ -77,6 +78,39 @@ export interface OverviewQuery {
   project?: string;
   fromMs: number;
   toMs: number;
+}
+
+export interface SessionSummary {
+  id: string;
+  provider: string;
+  cwd: string | null;
+  model: string | null;
+  firstEventAt: number | null;
+  lastActiveAt: number | null;
+  added: number;
+  removed: number;
+  fileCount: number;
+}
+
+export interface EditEventDto {
+  filePath: string | null;
+  timestampMs: number | null;
+  added: number;
+  removed: number;
+}
+
+export interface SessionDetail {
+  summary: SessionSummary;
+  events: EditEventDto[];
+}
+
+export interface ListSessionsQuery {
+  provider?: string;
+  project?: string;
+  fromMs?: number;
+  toMs?: number;
+  limit?: number;
+  offset?: number;
 }
 
 export type UsageRangePreset = "today" | "1d" | "7d" | "14d" | "30d" | "custom";

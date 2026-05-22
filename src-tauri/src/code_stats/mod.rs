@@ -52,6 +52,7 @@ pub struct ProjectInfo {
     pub path: String,
     pub session_count: u64,
     pub last_active_at: Option<i64>,
+    pub net_loc: i64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -170,6 +171,67 @@ pub fn invalidate_cache_for(path: &Path) {
     if let Ok(mut cache) = CACHE.lock() {
         cache.remove(path);
     }
+}
+
+/// Scan all sessions for both providers and return them paired with the
+/// underlying JSONL file path. Used by the sessions list command.
+pub fn scan_all_with_paths() -> Vec<(PathBuf, SessionStat)> {
+    let mut out: Vec<(PathBuf, SessionStat)> = Vec::new();
+    let claude_root = crate::paths::get_claude_config_dir().join("projects");
+    let codex_root = crate::paths::get_codex_config_dir().join("sessions");
+
+    let mut claude_files = Vec::new();
+    collect_jsonl_files(&claude_root, &mut claude_files);
+    for p in claude_files {
+        if let Some(stat) = parse_with_cache(&p, claude::parse_session) {
+            out.push((p, stat));
+        }
+    }
+
+    let mut codex_files = Vec::new();
+    collect_jsonl_files(&codex_root, &mut codex_files);
+    for p in codex_files {
+        if let Some(stat) = parse_with_cache(&p, codex::parse_session) {
+            out.push((p, stat));
+        }
+    }
+    out
+}
+
+/// Parse a single session JSONL file by its absolute path. Used by the
+/// session detail command after validating the path is inside one of the
+/// known data directories.
+pub fn parse_session_file(path: &Path) -> Option<(SessionStat, &'static str)> {
+    // Determine provider by which configured root the path lives under.
+    let claude_root = crate::paths::get_claude_config_dir();
+    let codex_root = crate::paths::get_codex_config_dir();
+    let canon = path.canonicalize().ok()?;
+    let in_claude = path_has_prefix(&canon, &claude_root);
+    let in_codex = path_has_prefix(&canon, &codex_root);
+    if in_claude {
+        parse_with_cache(path, claude::parse_session).map(|s| (s, "claude"))
+    } else if in_codex {
+        parse_with_cache(path, codex::parse_session).map(|s| (s, "codex"))
+    } else {
+        None
+    }
+}
+
+fn path_has_prefix(path: &Path, prefix: &Path) -> bool {
+    let canon_prefix = match prefix.canonicalize() {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+    path.starts_with(&canon_prefix)
+}
+
+pub fn is_path_inside_known_roots(path: &Path) -> bool {
+    let canon = match path.canonicalize() {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+    path_has_prefix(&canon, &crate::paths::get_claude_config_dir())
+        || path_has_prefix(&canon, &crate::paths::get_codex_config_dir())
 }
 
 pub fn ext_to_language(ext: &str) -> &'static str {
@@ -572,23 +634,33 @@ fn build_model_breakdown(
 
 pub fn list_projects() -> Vec<ProjectInfo> {
     let all = scan_all_sessions();
-    let mut by_path: HashMap<String, (u64, Option<i64>)> = HashMap::new();
+    // (session_count, last_active_at, added, removed)
+    let mut by_path: HashMap<String, (u64, Option<i64>, u64, u64)> = HashMap::new();
     for session in &all {
         let key = session.cwd.clone().unwrap_or_else(|| "unknown".to_string());
-        let entry = by_path.entry(key).or_insert((0, None));
+        let entry = by_path.entry(key).or_insert((0, None, 0, 0));
         entry.0 += 1;
         match (entry.1, session.last_active_at) {
             (None, Some(ts)) => entry.1 = Some(ts),
             (Some(prev), Some(ts)) if ts > prev => entry.1 = Some(ts),
             _ => {}
         }
+        for event in &session.events {
+            entry.2 += event.added;
+            entry.3 += event.removed;
+        }
     }
     let mut projects: Vec<ProjectInfo> = by_path
         .into_iter()
-        .map(|(path, (session_count, last_active_at))| ProjectInfo {
-            path,
-            session_count,
-            last_active_at,
+        .map(|(path, (session_count, last_active_at, added, removed))| {
+            let added_i = i64::try_from(added).unwrap_or(i64::MAX);
+            let removed_i = i64::try_from(removed).unwrap_or(i64::MAX);
+            ProjectInfo {
+                path,
+                session_count,
+                last_active_at,
+                net_loc: added_i.saturating_sub(removed_i),
+            }
         })
         .collect();
     projects.sort_by(|a, b| {

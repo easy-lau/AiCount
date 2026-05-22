@@ -17,12 +17,20 @@ const WEEKDAY_LABELS = ["一", "", "三", "", "五", "", ""];
 
 const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
 
+const LEGEND_TOKENS = [
+  "var(--heatmap-l0)",
+  "var(--heatmap-l1)",
+  "var(--heatmap-l2)",
+  "var(--heatmap-l3)",
+  "var(--heatmap-l4)",
+];
+
 function locToColor(loc: number): string {
-  if (loc === 0) return "#27272a";
-  if (loc <= 100) return "#064e3b";
-  if (loc <= 500) return "#047857";
-  if (loc <= 2000) return "#10b981";
-  return "#6ee7b7";
+  if (loc === 0) return LEGEND_TOKENS[0]!;
+  if (loc <= 100) return LEGEND_TOKENS[1]!;
+  if (loc <= 500) return LEGEND_TOKENS[2]!;
+  if (loc <= 2000) return LEGEND_TOKENS[3]!;
+  return LEGEND_TOKENS[4]!;
 }
 
 function addDays(date: Date, days: number): Date {
@@ -114,7 +122,7 @@ export function ActivityHeatmap({ data }: Props) {
                 x={WEEKDAY_LABEL_WIDTH + col * CELL_STEP}
                 y={12}
                 fontSize={10}
-                fill="#a1a1aa"
+                fill="var(--heatmap-label)"
               >
                 {label}
               </text>
@@ -128,7 +136,7 @@ export function ActivityHeatmap({ data }: Props) {
                   x={0}
                   y={MONTH_LABEL_HEIGHT + row * CELL_STEP + CELL_SIZE - 1}
                   fontSize={9}
-                  fill="#a1a1aa"
+                  fill="var(--heatmap-label)"
                 >
                   {label}
                 </text>
@@ -183,15 +191,15 @@ export function ActivityHeatmap({ data }: Props) {
                     width={TOOLTIP_W}
                     height={TOOLTIP_H}
                     rx={4}
-                    fill="#18181b"
-                    stroke="#3f3f46"
+                    fill="var(--heatmap-tooltip-bg)"
+                    stroke="var(--heatmap-tooltip-border)"
                     strokeWidth={1}
                   />
                   <text
                     x={rectX + TOOLTIP_W / 2}
                     y={textY}
                     fontSize={10}
-                    fill="#f4f4f5"
+                    fill="var(--heatmap-tooltip-fg)"
                     textAnchor="middle"
                   >
                     {tooltip.date}: +{tooltip.loc.toLocaleString()} 行
@@ -205,9 +213,9 @@ export function ActivityHeatmap({ data }: Props) {
         {/* Legend */}
         <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
           <span>较少</span>
-          {["#27272a", "#064e3b", "#047857", "#10b981", "#6ee7b7"].map((color) => (
-            <svg key={color} width={11} height={11}>
-              <rect width={11} height={11} rx={2} fill={color} />
+          {LEGEND_TOKENS.map((token) => (
+            <svg key={token} width={11} height={11}>
+              <rect width={11} height={11} rx={2} fill={token} />
             </svg>
           ))}
           <span>较多</span>

@@ -24,28 +24,51 @@
     --input: 240 5.9% 90%;
     --ring: 210 100% 56%;
     --radius: 0.5rem;
+
+    /* Activity heatmap palette (light) — GitHub-style */
+    --heatmap-l0: #ebedf0;
+    --heatmap-l1: #9be9a8;
+    --heatmap-l2: #40c463;
+    --heatmap-l3: #30a14e;
+    --heatmap-l4: #216e39;
+    --heatmap-label: #6b7280;
+    --heatmap-tooltip-bg: #18181b;
+    --heatmap-tooltip-border: #3f3f46;
+    --heatmap-tooltip-fg: #f4f4f5;
   }
 
   .dark {
-    --background: 240 5% 12%;
-    --foreground: 0 0% 98%;
-    --card: 240 5% 16%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 5% 16%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 210 100% 54%;
+    /* GitHub-Dark-style neutral cool gray (less violet) */
+    --background: 220 4% 9%;
+    --foreground: 210 6% 94%;
+    --card: 220 4% 13%;
+    --card-foreground: 210 6% 94%;
+    --popover: 220 4% 14%;
+    --popover-foreground: 210 6% 94%;
+    --primary: 210 100% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 18%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 5% 18%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 5% 18%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --secondary: 220 4% 17%;
+    --secondary-foreground: 210 6% 94%;
+    --muted: 220 4% 16%;
+    --muted-foreground: 215 6% 65%;
+    --accent: 220 4% 18%;
+    --accent-foreground: 210 6% 94%;
+    --destructive: 0 60% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5% 24%;
-    --input: 240 5% 24%;
-    --ring: 210 100% 54%;
+    --border: 220 4% 22%;
+    --input: 220 4% 22%;
+    --ring: 210 100% 60%;
+
+    /* Activity heatmap palette (dark) */
+    --heatmap-l0: #2c2c2f;
+    --heatmap-l1: #0e4429;
+    --heatmap-l2: #006d32;
+    --heatmap-l3: #26a641;
+    --heatmap-l4: #39d353;
+    --heatmap-label: #a1a1aa;
+    --heatmap-tooltip-bg: #18181b;
+    --heatmap-tooltip-border: #3f3f46;
+    --heatmap-tooltip-fg: #f4f4f5;
   }
 }
 

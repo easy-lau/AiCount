@@ -27,6 +27,12 @@ pub fn run() {
             commands::code_stats::compute_today_loc,
             commands::code_stats::compute_heatmap,
             commands::code_stats::export_overview,
+            commands::sessions::list_sessions,
+            commands::sessions::get_session_detail,
+            commands::sessions::delete_session,
+            commands::sessions::delete_project,
+            commands::settings::set_window_theme,
+            commands::settings::get_data_dirs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

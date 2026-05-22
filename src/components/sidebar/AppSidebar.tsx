@@ -1,7 +1,17 @@
-import { Code2, Home, Info } from "lucide-react";
+import {
+  Code2,
+  FolderOpen,
+  History,
+  Home,
+  Info,
+  Laptop,
+  Moon,
+  Sun,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTheme, type Theme } from "@/components/theme-provider";
 
-export type SidebarTab = "overview" | "about";
+export type SidebarTab = "overview" | "projects" | "sessions" | "about";
 
 interface NavItem {
   id: SidebarTab;
@@ -11,8 +21,23 @@ interface NavItem {
 
 const TOP_ITEMS: NavItem[] = [
   { id: "overview", label: "概况", icon: Home },
-  { id: "about", label: "关于", icon: Info },
+  { id: "projects", label: "项目", icon: FolderOpen },
+  { id: "sessions", label: "会话", icon: History },
 ];
+
+const BOTTOM_ITEMS: NavItem[] = [{ id: "about", label: "关于", icon: Info }];
+
+const THEME_CYCLE: Record<Theme, Theme> = {
+  system: "light",
+  light: "dark",
+  dark: "system",
+};
+
+const THEME_META: Record<Theme, { label: string; icon: typeof Sun }> = {
+  system: { label: "跟随系统", icon: Laptop },
+  light: { label: "浅色", icon: Sun },
+  dark: { label: "深色", icon: Moon },
+};
 
 interface AppSidebarProps {
   active: SidebarTab;
@@ -20,6 +45,9 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ active, onChange }: AppSidebarProps) {
+  const { theme, setTheme } = useTheme();
+  const ThemeIcon = THEME_META[theme].icon;
+
   const renderItem = (item: NavItem) => {
     const Icon = item.icon;
     const isActive = active === item.id;
@@ -52,6 +80,18 @@ export function AppSidebar({ active, onChange }: AppSidebarProps) {
       </div>
       <nav className="flex-1 flex flex-col gap-1 p-2">
         {TOP_ITEMS.map(renderItem)}
+      </nav>
+      <nav className="flex flex-col gap-1 p-2 border-t">
+        {BOTTOM_ITEMS.map(renderItem)}
+        <button
+          type="button"
+          onClick={() => setTheme(THEME_CYCLE[theme])}
+          className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          title={`主题：${THEME_META[theme].label}（点击切换）`}
+        >
+          <ThemeIcon className="size-4 shrink-0" />
+          <span className="leading-none">{THEME_META[theme].label}</span>
+        </button>
       </nav>
     </aside>
   );

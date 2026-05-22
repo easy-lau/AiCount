@@ -16,11 +16,8 @@ import {
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import {
-  Check,
-  ChevronDown,
   Code2,
   FileText,
-  FolderOpen,
   Home,
   Layers,
   PieChart as PieChartIcon,
@@ -34,15 +31,10 @@ import type {
   ProjectInfo,
   UsageRangeSelection,
 } from "@/types";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { StatsPage } from "@/components/stats/StatsPage";
+import { ProjectPicker } from "@/components/common/ProjectPicker";
 import { UsageDateRangePicker } from "@/components/overview/UsageDateRangePicker";
 import { LanguageBreakdownCard } from "@/components/overview/LanguageBreakdownCard";
 import { ActivityHeatmap } from "@/components/overview/ActivityHeatmap";
@@ -50,19 +42,9 @@ import { ExportButton } from "@/components/overview/ExportButton";
 import { ChartTooltip } from "@/components/overview/ChartTooltip";
 import { formatRangeTrigger, resolveUsageRange } from "@/lib/usageRange";
 import { cn } from "@/lib/utils";
-
-const ALL_PROJECTS = "__all__";
+import { ALL_PROJECTS } from "@/lib/constants";
 
 const MODEL_COLORS = ["#3b82f6", "#10b981", "#a855f7", "#f59e0b", "#9ca3af"];
-
-function basename(path: string): string {
-  if (!path) return path;
-  const parts = path.split(/[\\/]/);
-  for (let i = parts.length - 1; i >= 0; i--) {
-    if (parts[i]) return parts[i];
-  }
-  return path;
-}
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(Math.trunc(value));
@@ -94,7 +76,15 @@ function aggregateWeekly(
   return out;
 }
 
-export function OverviewPage() {
+interface OverviewPageProps {
+  selectedProject?: string;
+  onSelectedProjectChange?: (value: string) => void;
+}
+
+export function OverviewPage({
+  selectedProject: externalSelected,
+  onSelectedProjectChange,
+}: OverviewPageProps = {}) {
   const [selection, setSelection] = useState<UsageRangeSelection>({
     preset: "today",
   });
@@ -103,7 +93,13 @@ export function OverviewPage() {
     return { fromMs: r.startDate * 1000, toMs: r.endDate * 1000 };
   }, [selection]);
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>(ALL_PROJECTS);
+  const [internalSelected, setInternalSelected] =
+    useState<string>(ALL_PROJECTS);
+  const selectedProject = externalSelected ?? internalSelected;
+  const setSelectedProject = (value: string) => {
+    if (onSelectedProjectChange) onSelectedProjectChange(value);
+    else setInternalSelected(value);
+  };
   const [overview, setOverview] = useState<Overview | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -415,106 +411,6 @@ export function OverviewPage() {
         <StatsPage externalProject={selectedProject} />
       </div>
     </ScrollArea>
-  );
-}
-
-interface ProjectPickerProps {
-  projects: ProjectInfo[];
-  selected: string;
-  onSelect: (value: string) => void;
-}
-
-function ProjectPicker({ projects, selected, onSelect }: ProjectPickerProps) {
-  const [open, setOpen] = useState(false);
-  const isAll = selected === ALL_PROJECTS;
-  const label = isAll
-    ? `全部项目（${projects.length}）`
-    : basename(selected) || selected;
-
-  const pick = (value: string) => {
-    onSelect(value);
-    setOpen(false);
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          className="justify-start gap-2 max-w-[260px]"
-          title={isAll ? "全部项目" : selected}
-        >
-          <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="truncate flex-1 text-left">{label}</span>
-          <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-1" align="end">
-        <div className="max-h-[320px] overflow-y-auto">
-          <button
-            type="button"
-            onClick={() => pick(ALL_PROJECTS)}
-            className={cn(
-              "w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-left transition-colors",
-              isAll ? "bg-accent text-accent-foreground" : "hover:bg-muted",
-            )}
-          >
-            <Check
-              className={cn(
-                "h-4 w-4 shrink-0",
-                isAll ? "opacity-100" : "opacity-0",
-              )}
-            />
-            <span className="flex-1 truncate">全部项目</span>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {projects.length}
-            </span>
-          </button>
-          {projects.length === 0 ? (
-            <div className="px-2 py-3 text-xs text-muted-foreground">
-              暂无项目
-            </div>
-          ) : (
-            projects.map((p) => {
-              const active = p.path === selected;
-              return (
-                <button
-                  key={p.path}
-                  type="button"
-                  onClick={() => pick(p.path)}
-                  title={p.path}
-                  className={cn(
-                    "w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-left transition-colors",
-                    active
-                      ? "bg-accent text-accent-foreground"
-                      : "hover:bg-muted",
-                  )}
-                >
-                  <Check
-                    className={cn(
-                      "h-4 w-4 shrink-0",
-                      active ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate">
-                      {basename(p.path) || p.path}
-                    </div>
-                    <div className="truncate text-[10px] text-muted-foreground">
-                      {p.path}
-                    </div>
-                  </div>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {p.sessionCount}
-                  </span>
-                </button>
-              );
-            })
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
   );
 }
 
