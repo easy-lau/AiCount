@@ -11,6 +11,7 @@ import {
   Github,
   Lock,
   Mail,
+  RefreshCw,
   ShieldCheck,
   Tag,
 } from "lucide-react";
@@ -28,10 +29,25 @@ interface DataDirs {
   codexDir: string;
 }
 
+interface LatestRelease {
+  tag: string;
+  name: string | null;
+  html_url: string;
+  published_at: string | null;
+}
+
+type UpdateState =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "latest" }
+  | { kind: "newer"; tag: string; url: string }
+  | { kind: "error"; message: string };
+
 export function AboutPage() {
   const [version, setVersion] = useState<string>("…");
   const [dirs, setDirs] = useState<DataDirs | null>(null);
   const [copied, setCopied] = useState(false);
+  const [updateState, setUpdateState] = useState<UpdateState>({ kind: "idle" });
 
   useEffect(() => {
     getVersion()
@@ -47,6 +63,46 @@ export function AboutPage() {
   const openRepo = () => openUrl(REPO_URL).catch(() => {});
   const openIssue = () => openUrl(ISSUE_URL).catch(() => {});
   const mailAuthor = () => openUrl(`mailto:${AUTHOR_EMAIL}`).catch(() => {});
+
+  const parseSemver = (raw: string): [number, number, number] | null => {
+    const m = raw.replace(/^v/i, "").match(/^(\d+)\.(\d+)\.(\d+)/);
+    if (!m) return null;
+    return [Number(m[1]), Number(m[2]), Number(m[3])];
+  };
+
+  const isNewer = (latest: string, current: string) => {
+    const a = parseSemver(latest);
+    const b = parseSemver(current);
+    if (!a || !b) return false;
+    for (let i = 0; i < 3; i++) {
+      if (a[i] > b[i]) return true;
+      if (a[i] < b[i]) return false;
+    }
+    return false;
+  };
+
+  const checkUpdate = async () => {
+    setUpdateState({ kind: "checking" });
+    try {
+      const release = await invoke<LatestRelease>("check_latest_version", {
+        appVersion: version,
+      });
+      if (isNewer(release.tag, version)) {
+        setUpdateState({
+          kind: "newer",
+          tag: release.tag.replace(/^v/i, ""),
+          url: release.html_url,
+        });
+      } else {
+        setUpdateState({ kind: "latest" });
+      }
+    } catch (err) {
+      setUpdateState({
+        kind: "error",
+        message: typeof err === "string" ? err : "未知错误",
+      });
+    }
+  };
 
   const reveal = (path: string) => {
     if (!path) return;
@@ -120,7 +176,53 @@ User agent: ${navigator.userAgent}`;
           >
             <Mail className="size-3.5" /> 邮件联系作者
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={checkUpdate}
+            disabled={updateState.kind === "checking" || version === "…"}
+            className="gap-2"
+          >
+            <RefreshCw
+              className={`size-3.5 ${updateState.kind === "checking" ? "animate-spin" : ""}`}
+            />
+            {updateState.kind === "checking" ? "检查中…" : "检查更新"}
+          </Button>
         </div>
+
+        {updateState.kind !== "idle" && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground -mt-2">
+            {updateState.kind === "latest" && (
+              <span className="text-emerald-600">
+                ✓ 已是最新版本 (v{version})
+              </span>
+            )}
+            {updateState.kind === "newer" && (
+              <>
+                <span className="text-amber-600">
+                  有新版 v{updateState.tag}
+                </span>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs"
+                  onClick={() =>
+                    openUrl(updateState.url).catch(() => {})
+                  }
+                >
+                  打开 Releases ↗
+                </Button>
+              </>
+            )}
+            {updateState.kind === "error" && (
+              <span className="text-destructive">
+                检查失败：{updateState.message}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Privacy */}
         <Card>
@@ -131,8 +233,9 @@ User agent: ${navigator.userAgent}`;
           </CardHeader>
           <CardContent className="text-sm space-y-2">
             <p className="text-muted-foreground leading-relaxed">
-              AICount <span className="text-foreground font-medium">零网络请求</span>、
-              全本地解析，不会上传、发送或同步任何会话内容。
+              AICount <span className="text-foreground font-medium">无后台联网</span>、
+              全本地解析；仅在你主动点击「检查更新」时会访问 GitHub Releases API，
+              不会发送任何会话内容。
             </p>
             <ul className="space-y-1.5 text-xs">
               <li className="flex items-start gap-2">

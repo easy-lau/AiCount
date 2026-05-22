@@ -33,6 +33,7 @@ pub fn run() {
             commands::sessions::delete_project,
             commands::settings::set_window_theme,
             commands::settings::get_data_dirs,
+            commands::updates::check_latest_version,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
