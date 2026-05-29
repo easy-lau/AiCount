@@ -6,12 +6,18 @@ import {
   Info,
   Laptop,
   Moon,
+  Settings,
   Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme, type Theme } from "@/components/theme-provider";
 
-export type SidebarTab = "overview" | "projects" | "sessions" | "about";
+export type SidebarTab =
+  | "overview"
+  | "projects"
+  | "sessions"
+  | "settings"
+  | "about";
 
 interface NavItem {
   id: SidebarTab;
@@ -25,7 +31,10 @@ const TOP_ITEMS: NavItem[] = [
   { id: "sessions", label: "会话", icon: History },
 ];
 
-const BOTTOM_ITEMS: NavItem[] = [{ id: "about", label: "关于", icon: Info }];
+const BOTTOM_ITEMS: NavItem[] = [
+  { id: "settings", label: "设置", icon: Settings },
+  { id: "about", label: "关于", icon: Info },
+];
 
 const THEME_CYCLE: Record<Theme, Theme> = {
   system: "light",

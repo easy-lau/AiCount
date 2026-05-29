@@ -1,8 +1,29 @@
+use tauri::{AppHandle, Emitter};
+
+use crate::settings::UserSettings;
+
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedDataDirs {
     pub claude_dir: String,
     pub codex_dir: String,
+}
+
+#[tauri::command]
+pub async fn get_settings() -> Result<UserSettings, String> {
+    tauri::async_runtime::spawn_blocking(crate::settings::load)
+        .await
+        .map_err(|e| format!("get_settings failed: {e}"))
+}
+
+#[tauri::command]
+pub async fn save_settings(app: AppHandle, settings: UserSettings) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || crate::settings::save(&settings))
+        .await
+        .map_err(|e| format!("save_settings join failed: {e}"))?
+        .map_err(|e| format!("save_settings failed: {e}"))?;
+    let _ = app.emit("session-changed", ());
+    Ok(())
 }
 
 #[tauri::command]

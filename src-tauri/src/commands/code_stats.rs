@@ -20,6 +20,13 @@ pub async fn list_projects() -> Result<Vec<code_stats::ProjectInfo>, String> {
         .map_err(|e| format!("list_projects failed: {e}"))
 }
 
+#[tauri::command]
+pub async fn list_languages() -> Result<Vec<code_stats::LanguageOption>, String> {
+    tauri::async_runtime::spawn_blocking(code_stats::list_languages)
+        .await
+        .map_err(|e| format!("list_languages failed: {e}"))
+}
+
 #[derive(serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OverviewQuery {

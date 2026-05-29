@@ -1,3 +1,4 @@
+pub mod backup;
 pub mod code_stats;
 pub mod sessions;
 pub mod settings;

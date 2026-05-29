@@ -1,6 +1,7 @@
 mod paths;
 mod code_stats;
 mod commands;
+mod settings;
 mod tray;
 mod watcher;
 
@@ -27,13 +28,17 @@ pub fn run() {
             commands::code_stats::compute_today_loc,
             commands::code_stats::compute_heatmap,
             commands::code_stats::export_overview,
+            commands::code_stats::list_languages,
             commands::sessions::list_sessions,
             commands::sessions::get_session_detail,
             commands::sessions::delete_session,
             commands::sessions::delete_project,
             commands::settings::set_window_theme,
             commands::settings::get_data_dirs,
+            commands::settings::get_settings,
+            commands::settings::save_settings,
             commands::updates::check_latest_version,
+            commands::backup::backup_sessions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

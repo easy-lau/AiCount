@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
-import { History, RefreshCw } from "lucide-react";
+import { Archive, History, RefreshCw } from "lucide-react";
 import type {
   ListSessionsQuery,
   ProjectInfo,
@@ -18,6 +18,7 @@ import { ALL_PROJECTS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { SessionRow } from "./SessionRow";
 import { SessionDetailDrawer } from "./SessionDetailDrawer";
+import { BackupDialog } from "./BackupDialog";
 
 type ProviderFilter = "all" | "claude" | "codex";
 
@@ -46,6 +47,7 @@ export function SessionsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [backupOpen, setBackupOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,6 +127,16 @@ export function SessionsPage() {
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setBackupOpen(true)}
+                className="gap-1.5"
+              >
+                <Archive className="size-3.5" />
+                备份
+              </Button>
               <UsageDateRangePicker
                 selection={selection}
                 onApply={setSelection}
@@ -203,6 +215,11 @@ export function SessionsPage() {
       <SessionDetailDrawer
         sessionId={activeSessionId}
         onClose={() => setActiveSessionId(null)}
+      />
+      <BackupDialog
+        open={backupOpen}
+        onClose={() => setBackupOpen(false)}
+        projects={projects}
       />
     </>
   );

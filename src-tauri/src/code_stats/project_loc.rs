@@ -28,39 +28,48 @@ const MAX_FILE_BYTES: u64 = 5 * 1024 * 1024;
 #[derive(Clone)]
 struct CacheEntry {
     root_mtime: SystemTime,
-    loc: u64,
+    by_language: HashMap<String, u64>,
 }
 
 static CACHE: Lazy<Mutex<HashMap<PathBuf, CacheEntry>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
-pub fn count_loc(path: &Path) -> u64 {
+/// Per-language source-line counts for the project, cached by directory mtime.
+/// The breakdown is intentionally unfiltered so the cache stays valid when the
+/// user changes which languages are excluded.
+pub fn count_loc_by_language(path: &Path) -> HashMap<String, u64> {
     let Ok(meta) = std::fs::metadata(path) else {
-        return 0;
+        return HashMap::new();
     };
     if !meta.is_dir() {
-        return 0;
+        return HashMap::new();
     }
     let Ok(root_mtime) = meta.modified() else {
-        return 0;
+        return HashMap::new();
     };
     if let Ok(cache) = CACHE.lock() {
         if let Some(entry) = cache.get(path) {
             if entry.root_mtime == root_mtime {
-                return entry.loc;
+                return entry.by_language.clone();
             }
         }
     }
     let skip_set: HashSet<String> = SKIP_DIRS.iter().map(|s| s.to_lowercase()).collect();
-    let loc = walk_and_count(path, &skip_set);
+    let by_language = walk_and_count(path, &skip_set);
     if let Ok(mut cache) = CACHE.lock() {
-        cache.insert(path.to_path_buf(), CacheEntry { root_mtime, loc });
+        cache.insert(
+            path.to_path_buf(),
+            CacheEntry {
+                root_mtime,
+                by_language: by_language.clone(),
+            },
+        );
     }
-    loc
+    by_language
 }
 
-fn walk_and_count(root: &Path, skip_set: &HashSet<String>) -> u64 {
-    let mut total: u64 = 0;
+fn walk_and_count(root: &Path, skip_set: &HashSet<String>) -> HashMap<String, u64> {
+    let mut by_language: HashMap<String, u64> = HashMap::new();
     let mut stack: Vec<PathBuf> = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
         let entries = match std::fs::read_dir(&dir) {
@@ -100,12 +109,14 @@ fn walk_and_count(root: &Path, skip_set: &HashSet<String>) -> u64 {
                     continue;
                 }
                 if let Some(n) = count_newlines_in_file(&path) {
-                    total += n;
+                    *by_language
+                        .entry(super::ext_to_language(&ext).to_string())
+                        .or_default() += n;
                 }
             }
         }
     }
-    total
+    by_language
 }
 
 fn count_newlines_in_file(path: &Path) -> Option<u64> {
@@ -131,6 +142,10 @@ mod tests {
     use super::*;
     use std::fs;
     use tempfile::tempdir;
+
+    fn count_loc(path: &Path) -> u64 {
+        count_loc_by_language(path).values().sum()
+    }
 
     fn write_lines(path: &Path, n: usize) {
         if let Some(parent) = path.parent() {

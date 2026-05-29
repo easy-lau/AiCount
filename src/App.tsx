@@ -3,6 +3,7 @@ import { AppSidebar, type SidebarTab } from "@/components/sidebar/AppSidebar";
 import { OverviewPage } from "@/components/overview/OverviewPage";
 import { ProjectsPage } from "@/components/projects/ProjectsPage";
 import { SessionsPage } from "@/components/sessions/SessionsPage";
+import { SettingsPage } from "@/components/settings/SettingsPage";
 import { AboutPage } from "@/components/about/AboutPage";
 import { ALL_PROJECTS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ export default function App() {
     ),
     projects: <ProjectsPage onJump={jumpToOverview} />,
     sessions: <SessionsPage />,
+    settings: <SettingsPage />,
     about: <AboutPage />,
   };
 

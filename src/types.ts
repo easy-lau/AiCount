@@ -113,6 +113,15 @@ export interface ListSessionsQuery {
   offset?: number;
 }
 
+export interface LanguageOption {
+  language: string;
+  loc: number;
+}
+
+export interface UserSettings {
+  excludedLanguages: string[];
+}
+
 export type UsageRangePreset = "today" | "1d" | "7d" | "14d" | "30d" | "custom";
 
 export interface UsageRangeSelection {

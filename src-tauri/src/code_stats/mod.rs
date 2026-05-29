@@ -272,6 +272,33 @@ pub fn ext_to_language(ext: &str) -> &'static str {
     }
 }
 
+/// Languages the user has chosen to exclude from code-amount statistics.
+pub fn excluded_languages() -> HashSet<String> {
+    crate::settings::load()
+        .excluded_languages
+        .into_iter()
+        .collect()
+}
+
+/// True when an event's file should be skipped because its detected language is
+/// in the excluded set. Events without a file path are never excluded.
+fn event_excluded(file_path: Option<&str>, excluded: &HashSet<String>) -> bool {
+    if excluded.is_empty() {
+        return false;
+    }
+    match file_path {
+        Some(fp) => {
+            let ext = Path::new(fp)
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(|s| s.to_lowercase())
+                .unwrap_or_default();
+            excluded.contains(ext_to_language(&ext))
+        }
+        None => false,
+    }
+}
+
 pub(crate) fn parse_ts(value: &Value) -> Option<i64> {
     if let Some(n) = value.as_i64() {
         return Some(if n > 1_000_000_000_000 { n } else { n * 1000 });
@@ -343,6 +370,7 @@ fn compute_overview_from(
     let mut lang_files: HashMap<String, HashSet<String>> = HashMap::new();
     let mut lang_ext: HashMap<String, String> = HashMap::new();
 
+    let excluded = excluded_languages();
     let mut session_count: u64 = 0;
     for session in filtered {
         // Sessions with no known model are still counted in totals but excluded
@@ -350,6 +378,9 @@ fn compute_overview_from(
         let model_key: Option<&str> = session.model.as_deref();
         let mut session_in_current = false;
         for event in &session.events {
+            if event_excluded(event.file_path.as_deref(), &excluded) {
+                continue;
+            }
             let ts = match event.timestamp_ms.or(session.last_active_at) {
                 Some(v) => v,
                 None => continue,
@@ -424,8 +455,17 @@ fn compute_overview_from(
         )
     };
 
+    // Exclude the same languages from the on-disk total so the AI ratio's
+    // numerator and denominator stay consistent.
+    let project_loc_excl = |root: &Path| -> u64 {
+        project_loc::count_loc_by_language(root)
+            .into_iter()
+            .filter(|(lang, _)| !excluded.contains(lang))
+            .map(|(_, loc)| loc)
+            .sum()
+    };
     let total_project_loc: u64 = match project {
-        Some(p) => project_loc::count_loc(Path::new(p)),
+        Some(p) => project_loc_excl(Path::new(p)),
         None => {
             let mut roots: HashSet<&str> = HashSet::new();
             for s in filtered.iter() {
@@ -435,7 +475,7 @@ fn compute_overview_from(
             }
             roots
                 .into_iter()
-                .map(|r| project_loc::count_loc(Path::new(r)))
+                .map(|r| project_loc_excl(Path::new(r)))
                 .sum()
         }
     };
@@ -475,9 +515,13 @@ pub fn compute_heatmap(project: Option<&str>, from_ms: i64, to_ms: i64) -> Heatm
         None => all.iter().collect(),
     };
 
+    let excluded = excluded_languages();
     let mut bucket_loc: HashMap<String, u64> = HashMap::new();
     for session in &filtered {
         for event in &session.events {
+            if event_excluded(event.file_path.as_deref(), &excluded) {
+                continue;
+            }
             let ts = match event.timestamp_ms.or(session.last_active_at) {
                 Some(v) => v,
                 None => continue,
@@ -635,6 +679,7 @@ fn build_model_breakdown(
 pub fn list_projects() -> Vec<ProjectInfo> {
     let all = scan_all_sessions();
     // (session_count, last_active_at, added, removed)
+    let excluded = excluded_languages();
     let mut by_path: HashMap<String, (u64, Option<i64>, u64, u64)> = HashMap::new();
     for session in &all {
         let key = session.cwd.clone().unwrap_or_else(|| "unknown".to_string());
@@ -646,6 +691,9 @@ pub fn list_projects() -> Vec<ProjectInfo> {
             _ => {}
         }
         for event in &session.events {
+            if event_excluded(event.file_path.as_deref(), &excluded) {
+                continue;
+            }
             entry.2 += event.added;
             entry.3 += event.removed;
         }
@@ -670,6 +718,40 @@ pub fn list_projects() -> Vec<ProjectInfo> {
             .then_with(|| b.session_count.cmp(&a.session_count))
     });
     projects
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LanguageOption {
+    pub language: String,
+    pub loc: u64,
+}
+
+/// All-time distinct languages present across every session, with their total
+/// LOC (added + removed). Deliberately NOT filtered by the exclusion set — the
+/// settings UI needs the full list so the user can toggle any language.
+pub fn list_languages() -> Vec<LanguageOption> {
+    let all = scan_all_sessions();
+    let mut map: HashMap<String, u64> = HashMap::new();
+    for session in &all {
+        for event in &session.events {
+            if let Some(fp) = &event.file_path {
+                let ext = Path::new(fp)
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .map(|s| s.to_lowercase())
+                    .unwrap_or_default();
+                let language = ext_to_language(&ext).to_string();
+                *map.entry(language).or_default() += event.added + event.removed;
+            }
+        }
+    }
+    let mut langs: Vec<LanguageOption> = map
+        .into_iter()
+        .map(|(language, loc)| LanguageOption { language, loc })
+        .collect();
+    langs.sort_by(|a, b| b.loc.cmp(&a.loc).then_with(|| a.language.cmp(&b.language)));
+    langs
 }
 
 fn scan_all_sessions() -> Vec<SessionStat> {
@@ -700,9 +782,13 @@ fn aggregate_refs(sessions: &[&SessionStat]) -> CodeStats {
     let mut this_week = LocDelta::default();
     let mut this_month = LocDelta::default();
 
+    let excluded = excluded_languages();
     for session in sessions {
         let project_key = session.cwd.clone().unwrap_or_else(|| "unknown".to_string());
         for event in &session.events {
+            if event_excluded(event.file_path.as_deref(), &excluded) {
+                continue;
+            }
             total.accumulate(event.added, event.removed);
             by_provider
                 .entry(session.provider.clone())
@@ -780,8 +866,17 @@ pub(crate) fn collect_jsonl_files(root: &Path, files: &mut Vec<PathBuf>) {
 mod tests {
     use super::*;
 
+    /// Pin settings to "no exclusions" so stat assertions don't depend on the
+    /// developer's real settings.json or on test execution order.
+    fn clear_exclusions() {
+        crate::settings::override_for_test(crate::settings::UserSettings {
+            excluded_languages: vec![],
+        });
+    }
+
     #[test]
     fn aggregate_groups_by_provider_project_and_window() {
+        clear_exclusions();
         let now_ms = chrono::Utc::now().timestamp_millis();
         let yesterday = now_ms - 24 * 60 * 60 * 1000;
         let two_months_ago = now_ms - 60 * 24 * 60 * 60 * 1000;
@@ -842,6 +937,7 @@ mod tests {
 
     #[test]
     fn aggregate_refs_with_project_filter_drops_other_projects() {
+        clear_exclusions();
         let sessions = vec![
             SessionStat {
                 provider: "claude".to_string(),
@@ -897,6 +993,7 @@ mod tests {
 
     #[test]
     fn compute_overview_buckets_by_local_day() {
+        clear_exclusions();
         let day1 = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         let day2 = chrono::NaiveDate::from_ymd_opt(2026, 1, 2).unwrap();
         let day4 = chrono::NaiveDate::from_ymd_opt(2026, 1, 4).unwrap();
@@ -952,6 +1049,7 @@ mod tests {
 
     #[test]
     fn compute_overview_period_over_period_delta() {
+        clear_exclusions();
         let cur_day = chrono::NaiveDate::from_ymd_opt(2026, 2, 10).unwrap();
         let from_ms = local_ms_for(cur_day, 0, 0);
         let to_ms = local_ms_for(cur_day, 23, 59);
@@ -1004,6 +1102,7 @@ mod tests {
 
     #[test]
     fn compute_overview_returns_all_models_sorted_desc_by_loc() {
+        clear_exclusions();
         let day = chrono::NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
         let from_ms = local_ms_for(day, 0, 0);
         let to_ms = local_ms_for(day, 23, 59);
@@ -1046,6 +1145,7 @@ mod tests {
 
     #[test]
     fn compute_overview_respects_project_filter() {
+        clear_exclusions();
         let day = chrono::NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
         let from_ms = local_ms_for(day, 0, 0);
         let to_ms = local_ms_for(day, 23, 59);
@@ -1087,6 +1187,7 @@ mod tests {
 
     #[test]
     fn compute_overview_exposes_project_loc_and_ai_ratio() {
+        clear_exclusions();
         use std::fs::{self, File};
         use std::io::Write;
         use tempfile::tempdir;
