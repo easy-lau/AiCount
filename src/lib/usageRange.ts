@@ -30,12 +30,21 @@ export function resolveUsageRange(
   nowMs: number = Date.now(),
 ): ResolvedUsageRange {
   const endDate = Math.floor(nowMs / 1000);
+  // For calendar-day presets, extend the upper bound to the end of today
+  // (23:59:59) instead of the current instant. Otherwise the bound freezes at
+  // the moment the page resolved the range, and code generated later the same
+  // day falls outside the window — so new edits stop counting until the app is
+  // reopened, even though a manual refresh re-runs the query.
+  const startOfTodaySec = Math.floor(
+    getStartOfLocalDayDate(nowMs).getTime() / 1000,
+  );
+  const endOfTodaySec = startOfTodaySec + DAY_SECONDS - 1;
 
   switch (selection.preset) {
     case "today":
       return {
-        startDate: Math.floor(getStartOfLocalDayDate(nowMs).getTime() / 1000),
-        endDate,
+        startDate: startOfTodaySec,
+        endDate: endOfTodaySec,
       };
     case "1d":
       return {
@@ -47,11 +56,11 @@ export function resolveUsageRange(
     case "30d":
       return {
         startDate: getPresetLookbackStart(selection.preset, nowMs),
-        endDate,
+        endDate: endOfTodaySec,
       };
     case "custom": {
       const startDate = selection.customStartDate ?? endDate - DAY_SECONDS;
-      const customEndDate = selection.customEndDate ?? endDate;
+      const customEndDate = selection.customEndDate ?? endOfTodaySec;
       return {
         startDate,
         endDate: customEndDate,

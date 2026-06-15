@@ -33,6 +33,7 @@ import type {
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { StatsPage } from "@/components/stats/StatsPage";
 import { ProjectPicker } from "@/components/common/ProjectPicker";
 import { UsageDateRangePicker } from "@/components/overview/UsageDateRangePicker";
@@ -106,19 +107,19 @@ export function OverviewPage({
   const [granularity, setGranularity] = useState<"day" | "week">("day");
   const [heatmapData, setHeatmapData] = useState<HeatmapData | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadProjects = useCallback(() => {
     invoke<ProjectInfo[]>("list_projects")
       .then((result) => {
-        if (!cancelled) setProjects(result);
+        setProjects(result);
       })
       .catch(() => {
         // ignore
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   const loadOverview = useCallback(() => {
     setIsLoading(true);
@@ -160,14 +161,19 @@ export function OverviewPage({
     loadHeatmap();
   }, [loadHeatmap]);
 
+  const refreshAll = useCallback(() => {
+    loadOverview();
+    loadHeatmap();
+    loadProjects();
+  }, [loadOverview, loadHeatmap, loadProjects]);
+
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
     listen("session-changed", () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
-        loadOverview();
-        loadHeatmap();
+        refreshAll();
       }, 200);
     }).then((fn) => {
       unlisten = fn;
@@ -176,7 +182,7 @@ export function OverviewPage({
       if (timer) clearTimeout(timer);
       unlisten?.();
     };
-  }, [loadOverview, loadHeatmap]);
+  }, [refreshAll]);
 
   const trendData = useMemo(() => {
     if (!overview) return [];
@@ -227,6 +233,19 @@ export function OverviewPage({
               selected={selectedProject}
               onSelect={setSelectedProject}
             />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={refreshAll}
+              disabled={isLoading}
+              className="gap-1.5"
+              title="刷新数据"
+            >
+              <RefreshCw
+                className={cn("h-4 w-4", isLoading && "animate-spin")}
+              />
+              刷新
+            </Button>
             <ExportButton query={overviewQuery} />
           </div>
         </header>

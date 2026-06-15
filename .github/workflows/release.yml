@@ -60,9 +60,16 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "AICount ${{ github.ref_name }}"
           releaseBody: |
-            See the assets below to download and install AICount.
+            ## 本次更新（v0.3.3）
 
-            **Windows users**: download the `*-portable.exe` for a no-install single-file build, or the `.msi` / `setup.exe` for a standard installer.
+            - 🆕 **概况页新增「刷新」按钮**：可手动实时刷新统计数据（代码量、活动热力图、项目列表），无需重启应用。
+            - 🐛 **修复当天新代码需重启才统计的问题**：此前统计时间范围的上界被冻结在应用打开的时刻，导致打开应用后再用 Claude / Codex 写的代码必须重启应用才会计入。现在「当天 / 7d / 14d / 30d」等按自然日的范围上界改为当天 23:59:59，刷新即可统计当天任意时间生成的代码。
+
+            ---
+
+            下载下方对应平台的安装包即可使用 AICount。
+
+            **Windows 用户**：下载 `*-portable.exe` 免安装单文件版，或 `.msi` / `setup.exe` 标准安装包。
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
