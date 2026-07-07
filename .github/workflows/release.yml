@@ -7,7 +7,49 @@ on:
   workflow_dispatch:
 
 jobs:
+  # 1) Create a single draft release that every build job uploads into.
+  #    Doing this once (instead of once per matrix job) avoids the race that
+  #    produced duplicate drafts / a missing arm64 asset.
+  create-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create-release.outputs.result }}
+    steps:
+      - name: Create draft release
+        id: create-release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            const body = [
+              '## 本次更新（' + tag + '）',
+              '',
+              '- 🐛 **修复 macOS Apple Silicon（arm64）安装包缺失的问题**：此前发布流程中多个构建任务并行创建草稿版本，导致 arm64 的 `.dmg` 有时未出现在最终发布里。现改为「先建版本 → 各平台上传 → 全部成功后再发布」的流程，确保 arm64 与 Intel 安装包都稳定产出。',
+              '- 应用功能与 v0.3.3 一致。',
+              '',
+              '---',
+              '',
+              '下载下方对应平台的安装包即可使用 AICount。',
+              '',
+              '**macOS 用户**：Apple Silicon（M 系列）下载 `*_aarch64.dmg`，Intel 芯片下载 `*_x64.dmg`。',
+              '**Windows 用户**：下载 `*-portable.exe` 免安装单文件版，或 `.msi` / `setup.exe` 标准安装包。',
+            ].join('\n');
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              name: `AICount ${tag}`,
+              body,
+              draft: true,
+              prerelease: false,
+            });
+            return data.id;
+
+  # 2) Build every platform and upload into the release created above.
   publish-tauri:
+    needs: create-release
     permissions:
       contents: write
     strategy:
@@ -52,26 +94,12 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build and publish
+      - name: Build and upload
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "AICount ${{ github.ref_name }}"
-          releaseBody: |
-            ## 本次更新（v0.3.3）
-
-            - 🆕 **概况页新增「刷新」按钮**：可手动实时刷新统计数据（代码量、活动热力图、项目列表），无需重启应用。
-            - 🐛 **修复当天新代码需重启才统计的问题**：此前统计时间范围的上界被冻结在应用打开的时刻，导致打开应用后再用 Claude / Codex 写的代码必须重启应用才会计入。现在「当天 / 7d / 14d / 30d」等按自然日的范围上界改为当天 23:59:59，刷新即可统计当天任意时间生成的代码。
-
-            ---
-
-            下载下方对应平台的安装包即可使用 AICount。
-
-            **Windows 用户**：下载 `*-portable.exe` 免安装单文件版，或 `.msi` / `setup.exe` 标准安装包。
-          releaseDraft: true
-          prerelease: false
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
       - name: Upload portable Windows .exe
@@ -89,3 +117,27 @@ jobs:
           $dst = "AICount_${version}_x64-portable.exe"
           Copy-Item $src $dst
           gh release upload "${{ github.ref_name }}" $dst --clobber
+
+  # 3) Only publish (undraft) the release once every build job succeeded.
+  #    If the arm64 build fails, this job is skipped and the release stays a
+  #    draft — so you never ship a release that's silently missing a platform.
+  publish-release:
+    needs: [create-release, publish-tauri]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        uses: actions/github-script@v7
+        env:
+          release_id: ${{ needs.create-release.outputs.release_id }}
+        with:
+          script: |
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: process.env.release_id,
+              draft: false,
+              prerelease: false,
+              make_latest: 'true',
+            });
